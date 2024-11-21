@@ -1,8 +1,8 @@
 let video;
 let handPose;
 let hands = [];
-let faceMesh;
-let faces = [];
+let bodyPose;
+let bodies = [];
 let img;
 let mode = "normal"; // normal, view, zoom, persons
 let blurredImg;
@@ -10,13 +10,10 @@ let indexFinger = { x: 0, y: 0 };
 let thumb = { x: 0, y: 0 };
 let viewRadius = 100;
 let zoomFactor = 1;
-let options = { maxFaces: 10, refineLandmarks: true };
 function preload() {
   img = loadImage("people.jpg");
-
-  // img = loadImage('https://picsum.photos/width/2/height'); // Replace with your image URL
   handPose = ml5.handPose();
-  faceMesh = ml5.faceMesh(options);
+  bodyPose = ml5.bodyPose();
 }
 
 function setup() {
@@ -31,8 +28,8 @@ function setup() {
   // Setup handpose
   handPose.detectStart(video, gotHands);
 
-  // Setup faceMesh
-  faceMesh.detectStart(img, gotFaces);
+  // Setup bodyPose
+  bodyPose.detectStart(img, gotBodies);
 
   // Create blurred version of the image
   blurredImg = createGraphics(width / 2, height);
@@ -44,9 +41,9 @@ function gotHands(results) {
   hands = results;
 }
 
-function gotFaces(results) {
-  // Save the output to the faces variable
-  faces = results;
+function gotBodies(results) {
+  // Save the output to the bodies variable
+  bodies = results;
 }
 
 function modelReady() {
@@ -141,33 +138,31 @@ function handlePersonsMode(indexFinger) {
   let y = indexFinger["y"];
   fill(255, 0, 0);
   circle(x, y, 10);
-  for (let i = 0; i < faces.length; i++) {
-    let face = faces[i];
+  console.log(bodies);
+  for (let i = 0; i < bodies.length; i++) {
+    let body = bodies[i];
     if (
-      x >= face.faceOval.x &&
-      x <= face.faceOval.x + face.faceOval.width &&
-      y >= face.faceOval.y &&
-      y <= face.faceOval.y + face.faceOval.height
+      x >= body.box.xMin &&
+      x <= body.box.xMax &&
+      y >= body.box.yMin &&
+      y <= body.box.yMax
     ) {
       // Highlight person
-      let personWidth = face.faceOval.width;
-
-      let personHeight = face.faceOval.height;
+      let personWidth = body.box.xMax - body.box.xMin;
+      let personHeight = body.box.yMax - body.box.yMin;
       let scaleFactor = 1.2;
       image(
         img,
-        face.faceOval.x + width / 2 - (personWidth * (scaleFactor - 1)) / 2,
-        face.faceOval.y - (personHeight * (scaleFactor - 1)) / 2,
+        body.box.xMin + width / 2 - (personWidth * (scaleFactor - 1)) / 2,
+        body.box.yMin - (personHeight * (scaleFactor - 1)) / 2,
         personWidth * scaleFactor,
         personHeight * scaleFactor,
-        face.faceOval.x,
-        face.faceOval.y,
+        body.box.xMin,
+        body.box.yMin,
         personWidth,
         personHeight
       );
     }
-    // fill(255, 0, 0);
-    // circle((width/2) + face.faceOval.x, face.faceOval.y,10);
   }
 }
 
